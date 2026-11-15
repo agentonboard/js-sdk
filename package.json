@@ -1,6 +1,6 @@
 {
   "name": "@agentonboard/sdk",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "AgentOnboard SDK for verifying Agent Identity Tokens",
   "license": "MIT",
   "homepage": "https://agentonboard.xyz/docs",
