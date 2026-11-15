@@ -1,8 +1,20 @@
 # @agentonboard/sdk
 
-TypeScript/JavaScript Relying Party SDK for [AgentOnboard](https://agentonboard.xyz) — verify 5-minute RS256 Agent Identity Tokens locally against public JWKS, resolve App Accounts, and protect Next.js, Hono, or Express routes.
+Verify AI agent requests locally in your Next.js, Hono, or Express backend in three lines of TypeScript, without proxying traffic or locking your uptime to another auth server.
 
-Runtime-neutral (`Node.js`, `Bun`, `Deno`, `Cloudflare Workers`). Zero Node.js built-ins; single runtime dependency (`jose`).
+`@agentonboard/sdk` checks short-lived RS256 Agent Identity Tokens (`Authorization: Bearer <token>`) right inside your process against AgentOnboard's public JWKS, then passes the verified email to your own database lookup.
+
+## Why teams verify locally with `@agentonboard/sdk`
+
+Asking AI agents to click through OAuth screens or manage per-app API keys stalls automation before the first request. Hand-rolling JWT checks or delegating request routing to a proxy trades that friction for security bugs or vendor lock-in.
+
+`@agentonboard/sdk` keeps verification inside your own boundary:
+
+- **Your API stays online during our outages.** Public signing keys are cached in memory for up to 1 hour (`MAX_CACHED_KEY_SOURCES = 8`, 30s unknown-`kid` cooldown). If the JWKS endpoint goes unreachable on a warm process, the SDK keeps verifying against the last known good key set.
+- **Runs anywhere `fetch` exists.** Built with one runtime dependency (`jose`) and zero Node.js built-ins (`node:fs`, `node:net`, `node:http`). The same artifact runs on Node.js, Bun, Deno, and Cloudflare Workers.
+- **Your database owns permissions and signup.** `verifyAgentAccount` and the framework helpers are read-only by default: if `resolveAccount({ email })` returns `null` or `undefined`, the request stops with `403 ACCOUNT_REQUIRED`. Account creation happens only where you explicitly call `createAgentAccount`.
+- **Compile-time and runtime guardrails.** Framework adapters strip `jwks`, `jwksUrl`, `fetchJwks`, and `token` from options at the TypeScript type level (`type-tests/adapter-options.ts`), pin `RS256` verification regardless of JWT header, and match `aud` by normalized hostname equality (`notes.com.evil.com` never matches `notes.com`).
+- **Auditable behavior.** Every release passes 61 cross-language conformance vectors (`tests/fixtures/agent-token-v1.json`) across Node and Bun, plus an automated scan of `dist/` proving zero Node built-ins or framework imports.
 
 ## Install
 
@@ -14,7 +26,7 @@ npm install @agentonboard/sdk
 pnpm add @agentonboard/sdk
 ```
 
-## Quickstart
+## Add agent authentication in 2 minutes
 
 ### Next.js App Router (`@agentonboard/sdk/next`)
 
@@ -47,7 +59,8 @@ app.post("/notes", async (c) => {
   });
 
   if (!auth.ok) return auth.response;
-  return c.json({ user: auth.user });
+
+  return c.json(await db.note.findMany({ where: { userId: auth.user } }));
 });
 ```
 
@@ -64,31 +77,42 @@ app.post("/notes", async (req, res) => {
   });
 
   if (!auth.ok) return;
-  res.json({ user: auth.user });
+
+  res.json(await db.note.findMany({ where: { userId: auth.user } }));
 });
 ```
 
-### Core Functions (`@agentonboard/sdk`)
+Every binding maps rejections automatically: `401` for invalid/expired/mismatched tokens, `403 ACCOUNT_REQUIRED` when the human has no local account yet, and `500` when your `resolveAccount` callback throws or configuration is invalid.
 
-- `verifyAgentToken({ token, audience, issuer? })` — non-throwing JWT verification returning `{ ok: true, email, sub, audience, expiresAt, jti }` or `{ ok: false, code, error }`.
-- `verifyAgentAccount({ token, audience, resolveAccount })` — verifies the token, then calls `resolveAccount({ email })`; returns `ACCOUNT_REQUIRED` (403) when missing.
-- `createAgentAccount({ token, audience, resolveAccount, createAccount })` — explicit opt-in signup helper that calls `createAccount({ email })` only when `resolveAccount` returns `null` or `undefined`.
-- `normalizeEmail(email)` / `normalizeAudience(input)` / `VERIFY_ERROR_DESCRIPTIONS`.
+## Core API (`@agentonboard/sdk`)
 
-Full documentation: [agentonboard.xyz/docs](https://agentonboard.xyz/docs)
+When you need custom key sources (`jwks` for tests/air-gapped environments, `fetchJwks` for custom proxies) or explicit account creation:
 
-## Development & Conformance
+- `verifyAgentToken({ token, audience, issuer?, jwks?, fetchJwks?, clockToleranceSeconds? })`: non-throwing verifier returning `{ ok: true, email, sub, audience, expiresAt, jti }` or `{ ok: false, code, error }`.
+- `verifyAgentAccount({ ...verifyOptions, resolveAccount })`: verifies the token first, then passes `{ email }` verbatim to `resolveAccount`.
+- `createAgentAccount({ ...verifyOptions, resolveAccount, createAccount })`: explicit opt-in helper for your signup route; runs `createAccount({ email })` only after token verification succeeds and `resolveAccount` returns `null` or `undefined`.
+- `normalizeEmail(email)`: trims and lowercases emails for case-insensitive database lookups.
+- `normalizeAudience(input)`: extracts the normalized lowercase hostname (preserving port only for `localhost` and `127.0.0.1`).
+- `VERIFY_ERROR_DESCRIPTIONS`: human-readable descriptions for all 9 core failure codes.
+
+Read the full integration guides and API reference at [agentonboard.xyz/docs](https://agentonboard.xyz/docs).
+
+## Verify the guarantees yourself
 
 ```bash
+git clone https://github.com/agentonboard/js-sdk.git
+cd js-sdk
 pnpm install
 pnpm build
 pnpm test
 pnpm test:vectors:bun
 ```
 
-- `tests/fixtures/agent-token-v1.json` is synced from the canonical `agentonboard` conformance fixture (`pnpm sync:vectors:check`).
-- `pnpm test:dist` verifies the built `dist/` files import zero Node.js built-ins and zero framework packages.
-- `pnpm test:types` verifies withheld adapter options (`jwks`, `jwksUrl`, `fetchJwks`, `token`) fail at compile time.
+- `pnpm test:vectors` runs all 61 conformance cases against the built `dist/` bundle in Node.
+- `pnpm test:vectors:bun` runs the same conformance suite in Bun.
+- `pnpm test:types` compiles `type-tests/adapter-options.ts` with `tsc --strict` to confirm withheld adapter options fail to compile.
+- `pnpm test:dist` scans every `.js`/`.cjs`/`.mjs` file in `dist/` (including `dist/frameworks/`) and asserts zero Node built-ins and zero framework imports.
+- `pnpm sync:vectors:check` compares `tests/fixtures/agent-token-v1.json` against the canonical fixture in `agentonboard` when both repos sit side by side.
 
 ## Security
 
