@@ -1,0 +1,65 @@
+{
+  "name": "@agentonboard/sdk",
+  "version": "0.3.0",
+  "description": "AgentOnboard SDK for verifying Agent Identity Tokens",
+  "license": "MIT",
+  "homepage": "https://agentonboard.xyz/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agentonboard/js-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/agentonboard/js-sdk/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./next": {
+      "types": "./dist/frameworks/next.d.ts",
+      "import": "./dist/frameworks/next.js",
+      "require": "./dist/frameworks/next.cjs"
+    },
+    "./hono": {
+      "types": "./dist/frameworks/hono.d.ts",
+      "import": "./dist/frameworks/hono.js",
+      "require": "./dist/frameworks/hono.cjs"
+    },
+    "./express": {
+      "types": "./dist/frameworks/express.d.ts",
+      "import": "./dist/frameworks/express.js",
+      "require": "./dist/frameworks/express.cjs"
+    },
+    "./vectors/agent-token-v1.json": "./tests/fixtures/agent-token-v1.json"
+  },
+  "files": [
+    "dist",
+    "tests/fixtures/agent-token-v1.json"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "pnpm test:vectors && pnpm test:types && pnpm test:dist",
+    "test:vectors": "node scripts/verify-sdk-vectors.mjs",
+    "test:vectors:bun": "node scripts/test-vectors-bun.mjs",
+    "test:types": "node scripts/test-types.mjs",
+    "test:dist": "node scripts/test-dist.mjs",
+    "sync:vectors": "node scripts/sync-vectors.mjs",
+    "sync:vectors:check": "node scripts/sync-vectors.mjs --check"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.0"
+  },
+  "dependencies": {
+    "jose": "^6.2.12"
+  },
+  "packageManager": "pnpm@12.16.1"
+}
