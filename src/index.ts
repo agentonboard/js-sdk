@@ -1,7 +1,6 @@
 export {
   normalizeAudience,
   verifyAgentToken,
-  verifyToken,
   type VerifyAgentTokenOptions,
   type VerifyAgentTokenResult,
 } from "./verify.js";

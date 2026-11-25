@@ -21,6 +21,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./web": {
+      "types": "./dist/frameworks/web.d.ts",
+      "import": "./dist/frameworks/web.js",
+      "require": "./dist/frameworks/web.cjs"
+    },
     "./next": {
       "types": "./dist/frameworks/next.d.ts",
       "import": "./dist/frameworks/next.js",

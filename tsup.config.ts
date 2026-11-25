@@ -3,6 +3,7 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: [
     "src/index.ts",
+    "src/frameworks/web.ts",
     "src/frameworks/next.ts",
     "src/frameworks/hono.ts",
     "src/frameworks/express.ts",
