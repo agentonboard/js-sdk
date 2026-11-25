@@ -12,17 +12,17 @@
 // and a peer-dependency policy. Everything below the type does not change.
 
 import {
-  checkAgentAccount,
+  requireAgentAccount as requireWebAgentAccount,
   type RequireAgentAccountOptions,
   type RequireAgentAccountResult,
-} from "./adapter.js";
+} from "./web.js";
 
 export type {
   AgentAccountFailure,
   AgentRequest,
   RequireAgentAccountOptions,
   RequireAgentAccountResult,
-} from "./adapter.js";
+} from "./web.js";
 
 /**
  * The slice of a Hono `Context` this binding reads: the request header lookup, and nothing else.
@@ -75,5 +75,8 @@ export function requireAgentAccount<TUser>(
   context: HonoContext,
   options: RequireAgentAccountOptions<TUser>
 ): Promise<RequireAgentAccountResult<TUser>> {
-  return checkAgentAccount({ headers: { get: (name) => context.req.header(name) } }, options);
+  return requireWebAgentAccount(
+    { headers: { get: (name) => context.req.header(name) } },
+    options
+  );
 }

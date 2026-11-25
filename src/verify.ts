@@ -311,19 +311,3 @@ export async function verifyAgentToken(
     };
   }
 }
-
-/**
- * @deprecated Use {@link verifyAgentToken}. It returns the failure `code` and the verified `jti`,
- * `expiresAt`, and `userId` that this shim drops, so a Relying Party cannot tell a revoked key from a
- * typo.
- */
-export async function verifyToken(options: {
-  token: string;
-  audience: string;
-}): Promise<{ ok: boolean; email?: string; error?: string }> {
-  const res = await verifyAgentToken(options);
-  if (res.ok) {
-    return { ok: true, email: res.email };
-  }
-  return { ok: false, error: res.error };
-}
